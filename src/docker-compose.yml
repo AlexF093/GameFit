@@ -1,0 +1,33 @@
+version: "3"
+services:
+  mongo:
+    image: mongo
+    ports:
+      - "27017:27017"
+
+  users:
+    build: ./users-service-node
+    ports:
+      - "3001:3001"
+    depends_on:
+      - mongo
+
+  workouts:
+    build: ./workouts-service-python
+    ports:
+      - "8000:8000"
+
+  gateway:
+    build: ./gateway-node
+    ports:
+      - "3000:3000"
+    depends_on:
+      - users
+      - workouts
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "8080:8080"
+    depends_on:
+      - gateway
