@@ -294,6 +294,8 @@ function stopRoutineTimer() {
   localStorage.setItem('xp', xp);
   updateProfile();
 
+  renderHistory();
+
   // Reset completo
   resetRoutineTimer();
 
