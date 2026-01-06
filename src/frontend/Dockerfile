@@ -9,3 +9,5 @@ COPY . .
 EXPOSE 8080
 
 CMD ["http-server", "-p", "8080"]
+
+CMD ["http-server", "-p", "8080"]

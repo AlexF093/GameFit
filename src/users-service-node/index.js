@@ -2,10 +2,33 @@ const express = require("express");
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
 const cors = require("cors");
+const swaggerJsdoc = require("swagger-jsdoc");
+const swaggerUi = require("swagger-ui-express");
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+// Swagger configuration
+const swaggerOptions = {
+  definition: {
+    openapi: "3.0.0",
+    info: {
+      title: "GameFit Users API",
+      version: "1.0.0",
+      description: "API for user management in GameFit",
+    },
+    servers: [
+      {
+        url: "http://localhost:3001",
+      },
+    ],
+  },
+  apis: ["./index.js"], // files containing annotations
+};
+
+const swaggerSpec = swaggerJsdoc(swaggerOptions);
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // 🔗 Conexión MongoDB (docker-compose)
 mongoose.connect("mongodb://mongo:27017/gamefit", {
@@ -24,7 +47,28 @@ const UserSchema = new mongoose.Schema({
 
 const User = mongoose.model("User", UserSchema);
 
-// 🟢 SIGN UP
+/**
+ * @swagger
+ * /api/auth/register:
+ *   post:
+ *     summary: Register a new user
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               username:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: User created successfully
+ *       400:
+ *         description: Bad request
+ */
 app.post("/api/auth/register", async (req, res) => {
   const { username, password } = req.body;
 
@@ -52,7 +96,43 @@ app.post("/api/auth/register", async (req, res) => {
   }
 });
 
-// 🔵 LOGIN
+/**
+ * @swagger
+ * /api/auth/login:
+ *   post:
+ *     summary: Login a user
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               username:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Login successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 username:
+ *                   type: string
+ *                 character:
+ *                   type: string
+ *                 level:
+ *                   type: integer
+ *                 xp:
+ *                   type: integer
+ *       400:
+ *         description: Bad request
+ *       401:
+ *         description: Unauthorized
+ */
 app.post("/api/auth/login", async (req, res) => {
   const { username, password } = req.body;
 
@@ -89,4 +169,5 @@ app.post("/api/auth/login", async (req, res) => {
 // 🚀 START
 app.listen(3001, () => {
   console.log("Users service running on port 3001");
+  console.log("API Docs available at http://localhost:3001/api-docs");
 });

@@ -39,36 +39,17 @@
 <section id="myroutine" class="section">
   <h2>Mis Rutinas</h2>
 
+  <!-- Formulario para añadir nueva rutina -->
+  <div id="addRoutineForm" class="hidden">
+    <h3>➕ Añadir Nueva Rutina</h3>
+    <input id="newRoutineName" placeholder="Nombre de la rutina" required>
+    <input id="newRoutineExercises" placeholder="Ejercicios separados por comas" required>
+    <button onclick="saveNewRoutine()">💾 Guardar</button>
+    <button onclick="cancelAddRoutine()">❌ Cancelar</button>
+  </div>
+
   <!-- Lista de rutinas -->
   <div id="routinesList"></div>
-
-  <!-- Temporizador de rutina activa -->
-  <div id="routineTimer" class="hidden">
-    <div class="timer-display">
-      <h3 id="currentRoutineName"></h3>
-      <div class="timer">⏱️ <span id="timerDisplay">00:00:00</span></div>
-      <div class="timer-controls">
-        <button id="startTimer" onclick="startRoutineTimer()">▶️ Iniciar</button>
-        <button id="pauseTimer" onclick="pauseRoutineTimer()" class="hidden">⏸️ Pausar</button>
-        <button id="stopTimer" onclick="stopRoutineTimer()" class="hidden">⏹️ Terminar</button>
-        <button onclick="editRoutineTime()">✏️ Editar Tiempo</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Modal para editar tiempo -->
-  <div id="editTimeModal" class="modal hidden">
-    <div class="modal-content">
-      <h3>Editar Tiempo</h3>
-      <input type="number" id="editHours" placeholder="Horas" min="0">
-      <input type="number" id="editMinutes" placeholder="Minutos" min="0" max="59">
-      <input type="number" id="editSeconds" placeholder="Segundos" min="0" max="59">
-      <div class="modal-buttons">
-        <button onclick="saveEditedTime()">Guardar</button>
-        <button onclick="closeEditModal()">Cancelar</button>
-      </div>
-    </div>
-  </div>
 </section>
 
 <section id="history" class="section">
@@ -93,14 +74,23 @@
 
   <div id="profileInfo" class="hidden">
     <p><strong>Usuario:</strong> <span id="profileUser"></span></p>
-    <p><strong>Personaje:</strong> <span id="profileCharacter"></span></p>
-    <p><strong>Nivel:</strong> <span id="profileLevel"></span></p>
-    <div class="xp-bar"><div id="xpFill"></div></div>
-    <p id="xpText"></p>
   </div>
 </section>
 
 </main>
+
+<!-- Temporizador de rutina activa (global) -->
+<div id="routineTimer" class="hidden">
+  <div class="timer-display">
+    <h3 id="currentRoutineName"></h3>
+    <div class="timer">⏱️ <span id="timerDisplay">00:00:00</span></div>
+    <div class="timer-controls">
+      <button id="startTimer" onclick="startRoutineTimer()">▶️ Iniciar</button>
+      <button id="pauseTimer" onclick="pauseRoutineTimer()" class="hidden">⏸️ Pausar</button>
+      <button id="stopTimer" onclick="stopRoutineTimer()" class="hidden">⏹️ Terminar</button>
+    </div>
+  </div>
+</div>
 
 <script src="app.js"></script>
 </body>

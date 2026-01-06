@@ -1,7 +1,13 @@
 from fastapi import FastAPI
 import requests
+from pymongo import MongoClient
 
 app = FastAPI(title="GameFit Workouts API")
+
+# Conexión MongoDB
+client = MongoClient("mongodb://mongo:27017/")
+db = client.gamefit
+workouts_collection = db.workouts
 
 # API externa gratuita (opcional)
 EXERCISE_API_URL = "https://api.api-ninjas.com/v1/exercises"
@@ -9,6 +15,15 @@ API_KEY = "YOUR_API_KEY_HERE"  # Reemplaza con tu key de API Ninjas (gratuita co
 
 @app.get("/workouts/{character}")
 def get_workout(character: str):
+    # Verificar si ya existe en DB
+    existing = workouts_collection.find_one({"character": character})
+    if existing:
+        return {
+            "character": character,
+            "routine": existing["routine"],
+            "source": "database"
+        }
+
     # Intentar consumir API externa
     try:
         headers = {'X-Api-Key': API_KEY}
@@ -22,6 +37,7 @@ def get_workout(character: str):
         if response.status_code == 200:
             exercises = response.json()
             routine = [ex['name'] for ex in exercises]
+            source = "external_api"
         else:
             raise Exception("API error")
     except:
@@ -32,9 +48,16 @@ def get_workout(character: str):
             "Luffy": ["Jump rope", "Sit-ups", "Running"]
         }
         routine = routines.get(character, [])
+        source = "local_fallback"
+
+    # Guardar en DB
+    workouts_collection.insert_one({
+        "character": character,
+        "routine": routine
+    })
 
     return {
         "character": character,
         "routine": routine,
-        "source": "external_api" if 'exercises' in locals() else "local_fallback"
+        "source": source
     }

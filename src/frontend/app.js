@@ -1,19 +1,33 @@
 let user = null;
-let xp = 0;
-let character = 'Goku';
-let level = 1;
 let history = [];
 let myRoutine = [];
 let routines = {
   'Rutina de Goku': {
-    exercises: ['Push-ups', 'Squats', 'Burpees'],
-    sessions: []
+    exercises: ['Push-ups', 'Squats', 'Burpees']
   },
   'Pierna': {
-    exercises: ['Sentadillas', 'Peso muerto', 'Elevación de talones'],
-    sessions: []
+    exercises: ['Sentadillas', 'Peso muerto', 'Elevación de talones']
   }
 };
+
+// Cargar datos desde localStorage
+try {
+  user = JSON.parse(localStorage.getItem('user')) || null;
+  history = JSON.parse(localStorage.getItem('history')) || [];
+  myRoutine = JSON.parse(localStorage.getItem('myRoutine')) || [];
+  routines = JSON.parse(localStorage.getItem('routines')) || routines;
+} catch (e) {
+  console.error('Error loading from localStorage:', e);
+  // Reset to defaults
+  user = null;
+  history = [];
+  myRoutine = [];
+  routines = {
+    'Rutina de Goku': { exercises: ['Push-ups', 'Squats', 'Burpees'] },
+    'Pierna': { exercises: ['Sentadillas', 'Peso muerto', 'Elevación de talones'] }
+  };
+}
+
 let currentRoutine = null;
 let routineTimer = null;
 let routineStartTime = null;
@@ -30,13 +44,6 @@ function showSection(id) {
   document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
   document.getElementById(id).classList.add("active");
 
-  // Asegurar que el modal esté oculto al cambiar de sección
-  const editModal = document.getElementById('editTimeModal');
-  if (editModal) {
-    editModal.classList.add('hidden');
-    editModal.style.display = 'none';
-  }
-
   // Reset completo del temporizador cuando cambias de sección
   resetRoutineTimer();
 }
@@ -52,22 +59,6 @@ function resetRoutineTimer() {
   const timerDiv = document.getElementById('routineTimer');
   if (timerDiv) {
     timerDiv.classList.add("hidden");
-
-    // Limpiar ejercicios de rutina activa
-    const exercisesContainer = document.getElementById('currentRoutineExercises');
-    if (exercisesContainer) {
-      exercisesContainer.remove();
-    }
-  }
-
-  // Asegurar que el modal esté oculto
-  const editModal = document.getElementById('editTimeModal');
-  if (editModal) {
-    editModal.classList.add('hidden');
-    // Limpiar valores del modal
-    document.getElementById('editHours').value = '';
-    document.getElementById('editMinutes').value = '';
-    document.getElementById('editSeconds').value = '';
   }
 
   // Resetear display del timer
@@ -88,21 +79,6 @@ function resetRoutineTimer() {
 
 // Inicializar al cargar
 document.addEventListener('DOMContentLoaded', function() {
-  // Forzar ocultamiento de modales y elementos de temporizador
-  setTimeout(() => {
-    const editModal = document.getElementById('editTimeModal');
-    const routineTimer = document.getElementById('routineTimer');
-
-    if (editModal) {
-      editModal.classList.add('hidden');
-      editModal.style.display = 'none';
-    }
-    if (routineTimer) {
-      routineTimer.classList.add('hidden');
-      routineTimer.style.display = 'none';
-    }
-  }, 100);
-
   renderRoutines();
   renderHistory();
 });
@@ -119,8 +95,8 @@ function requireAuth() {
 
 // 🔐 AUTH
 async function signup() {
-  const u = signupUser.value;
-  const p = signupPass.value;
+  const u = document.getElementById('signupUser').value;
+  const p = document.getElementById('signupPass').value;
 
   if (!u || !p) {
     alert("Por favor completa todos los campos");
@@ -128,7 +104,7 @@ async function signup() {
   }
 
   try {
-    const res = await fetch("http://localhost:3000/api/auth/register", {
+    const res = await fetch("http://localhost:3002/api/auth/register", {
       method: "POST",
       headers: {"Content-Type": "application/json"},
       body: JSON.stringify({ username: u, password: p })
@@ -138,8 +114,8 @@ async function signup() {
 
     if (res.ok) {
       alert("Usuario creado exitosamente");
-      signupUser.value = "";
-      signupPass.value = "";
+      document.getElementById('signupUser').value = "";
+      document.getElementById('signupPass').value = "";
     } else {
       alert("Error: " + (data.error || "Error desconocido"));
     }
@@ -150,8 +126,8 @@ async function signup() {
 }
 
 async function login() {
-  const u = loginUser.value;
-  const p = loginPass.value;
+  const u = document.getElementById('loginUser').value;
+  const p = document.getElementById('loginPass').value;
 
   if (!u || !p) {
     alert("Por favor completa todos los campos");
@@ -159,7 +135,7 @@ async function login() {
   }
 
   try {
-    const res = await fetch("http://localhost:3000/api/auth/login", {
+    const res = await fetch("http://localhost:3002/api/auth/login", {
       method: "POST",
       headers: {"Content-Type": "application/json"},
       body: JSON.stringify({ username: u, password: p })
@@ -169,18 +145,16 @@ async function login() {
 
     if (res.ok) {
       user = data.username;
-      character = data.character || 'Goku';
-      level = data.level || 1;
-      xp = data.xp || 0;
 
-      profileUser.textContent = user;
-      document.getElementById('profileCharacter').textContent = character;
-      document.getElementById('profileLevel').textContent = level;
-      xpFill.style.width = xp + "%";
-      xpText.textContent = `Nivel ${level} - XP: ${xp}%`;
+      // Guardar en localStorage
+      localStorage.setItem('user', JSON.stringify(user));
+      localStorage.setItem('history', JSON.stringify(history));
+      localStorage.setItem('myRoutine', JSON.stringify(myRoutine));
+      localStorage.setItem('routines', JSON.stringify(routines));
 
-      authBox.classList.add("hidden");
-      profileInfo.classList.remove("hidden");
+      document.getElementById('profileUser').textContent = user;
+      document.getElementById('authBox').classList.add("hidden");
+      document.getElementById('profileInfo').classList.remove("hidden");
 
       // Cambiar a la sección de perfil
       showSection('profile');
@@ -202,11 +176,12 @@ async function loadWorkout() {
 
   const selectedCharacter = document.getElementById('character').value;
   try {
-    const res = await fetch(`http://localhost:3000/api/workouts/${selectedCharacter}`);
+    const res = await fetch(`http://localhost:3002/api/workouts/${selectedCharacter}`);
     const data = await res.json();
 
     // Renderizar rutina como lista simple
-    routine.innerHTML = `<h3>Rutina de ${selectedCharacter}</h3>`;
+    const routineDiv = document.getElementById('routine');
+    routineDiv.innerHTML = `<h3>Rutina de ${selectedCharacter}</h3>`;
 
     const exercisesList = document.createElement("div");
     exercisesList.className = "generated-routine-list";
@@ -218,14 +193,15 @@ async function loadWorkout() {
       exercisesList.appendChild(exerciseItem);
     });
 
-    routine.appendChild(exercisesList);
+    routineDiv.appendChild(exercisesList);
 
     // Añadir botón para guardar toda la rutina
     const saveButton = document.createElement("button");
     saveButton.textContent = "💾 Añadir toda la rutina a Mi Rutina";
     saveButton.className = "save-routine-btn";
     saveButton.onclick = () => addWorkoutToMyRoutine(data.routine, selectedCharacter);
-    routine.appendChild(saveButton);
+    routineDiv.appendChild(saveButton);
+
   } catch (error) {
     console.error("Error loading workout:", error);
     alert("Error al cargar la rutina. Verifica que el servidor esté corriendo.");
@@ -236,6 +212,9 @@ async function loadWorkout() {
 function startRoutine(routineName) {
   if (!requireAuth()) return;
 
+  // Resetear el timer antes de iniciar
+  resetRoutineTimer();
+
   currentRoutine = routineName;
 
   // Mostrar el temporizador
@@ -245,316 +224,8 @@ function startRoutine(routineName) {
   // Actualizar nombre de la rutina
   document.getElementById('currentRoutineName').textContent = routineName;
 
-  // Limpiar ejercicios anteriores
-  const existingExercises = document.getElementById('currentRoutineExercises');
-  if (existingExercises) {
-    existingExercises.remove();
-  }
-
-  // Crear contenedor para ejercicios de la rutina en modo entrenamiento
-  const exercisesContainer = document.createElement("div");
-  exercisesContainer.id = "currentRoutineExercises";
-  exercisesContainer.className = "training-exercises";
-
-  routines[routineName].exercises.forEach(exercise => {
-    const exerciseDiv = document.createElement("div");
-    exerciseDiv.className = "training-exercise";
-
-    const exerciseHeader = document.createElement("div");
-    exerciseHeader.className = "training-exercise-header";
-    exerciseHeader.innerHTML = `<h4>🏋️ ${exercise}</h4>`;
-
-    const seriesContainer = document.createElement("div");
-    seriesContainer.className = "training-series";
-
-    // Crear 3 series por defecto para cada ejercicio
-    for (let i = 0; i < 3; i++) {
-      const seriesDiv = document.createElement("div");
-      seriesDiv.className = "training-series-item";
-
-      seriesDiv.innerHTML = `
-        <span class="series-label">Serie ${i + 1}:</span>
-        <input type="number" placeholder="Reps" class="series-input reps-input" min="0">
-        <input type="number" placeholder="Peso (kg)" class="series-input weight-input" min="0" step="0.5">
-        <input type="number" placeholder="Tiempo (seg)" class="series-input time-input" min="0">
-        <button class="complete-series-btn" onclick="completeSeries('${exercise}', ${i}, this)">✔ Completar</button>
-      `;
-
-      seriesContainer.appendChild(seriesDiv);
-    }
-
-    // Botón para añadir más series
-    const addSeriesBtn = document.createElement("button");
-    addSeriesBtn.textContent = "➕ Añadir Serie";
-    addSeriesBtn.className = "add-series-btn";
-    addSeriesBtn.onclick = () => addTrainingSeries(exercise, seriesContainer);
-
-    exerciseDiv.appendChild(exerciseHeader);
-    exerciseDiv.appendChild(seriesContainer);
-    exerciseDiv.appendChild(addSeriesBtn);
-
-    exercisesContainer.appendChild(exerciseDiv);
-  });
-
-  // Insertar después del temporizador
-  timerDiv.appendChild(exercisesContainer);
-
-  // Resetear el temporizador
-  resetRoutineTimer();
-
-  showSection('myroutine');
-}
-
-function createExercise(container, name, canAdd, initial) {
-  const ex = {
-    name,
-    series: []
-  };
-
-  // Inicializar series con campos vacíos
-  for (let i = 0; i < initial; i++) {
-    ex.series.push({
-      done: false,
-      reps: "",
-      weight: "",
-      time: ""
-    });
-  }
-
-  const div = document.createElement("div");
-  div.className = "exercise";
-  div.innerHTML = `<strong>${name}</strong>`;
-
-  const list = document.createElement("div");
-  div.appendChild(list);
-
-  function render() {
-    list.innerHTML = "";
-
-    ex.series.forEach((s, i) => {
-      const row = document.createElement("div");
-      row.className = "series" + (s.done ? " completed" : "");
-
-      // Crear inputs para reps, weight, time
-      const repsInput = document.createElement("input");
-      repsInput.type = "number";
-      repsInput.min = "0";
-      repsInput.placeholder = "Reps";
-      repsInput.value = s.reps;
-      repsInput.className = "series-input";
-      repsInput.onchange = (e) => {
-        s.reps = e.target.value;
-      };
-
-      const weightInput = document.createElement("input");
-      weightInput.type = "number";
-      weightInput.min = "0";
-      weightInput.step = "0.5";
-      weightInput.placeholder = "Peso (kg)";
-      weightInput.value = s.weight;
-      weightInput.className = "series-input";
-      weightInput.onchange = (e) => {
-        s.weight = e.target.value;
-      };
-
-      const timeInput = document.createElement("input");
-      timeInput.type = "number";
-      timeInput.min = "0";
-      timeInput.placeholder = "Tiempo (seg)";
-      timeInput.value = s.time;
-      timeInput.className = "series-input";
-      timeInput.onchange = (e) => {
-        s.time = e.target.value;
-      };
-
-      const label = document.createElement("span");
-      label.textContent = `Serie ${i+1}:`;
-      label.className = "series-label";
-
-      const inputsDiv = document.createElement("div");
-      inputsDiv.className = "series-inputs";
-      inputsDiv.appendChild(repsInput);
-      inputsDiv.appendChild(weightInput);
-      inputsDiv.appendChild(timeInput);
-
-      const ok = document.createElement("button");
-      ok.textContent = "✔";
-      ok.className = "complete";
-      ok.onclick = () => {
-        // Validar que al menos uno de los campos esté lleno
-        if (!s.reps && !s.weight && !s.time) {
-          alert("Completa al menos repeticiones, peso o tiempo para esta serie");
-          return;
-        }
-
-        // Marcar como completada
-        s.done = true;
-
-        // Añadir a historial
-        if (!history.includes(ex.name)) {
-          history.push(ex.name);
-          renderHistory();
-        }
-
-        // Dar XP
-        xp = Math.min(100, xp + 5);
-        xpFill.style.width = xp + "%";
-        xpText.textContent = `Nivel ${level} - XP: ${xp}%`;
-
-        render();
-      };
-
-      const del = document.createElement("button");
-      del.textContent = "❌";
-      del.className = "delete";
-      del.onclick = () => {
-        ex.series.splice(i, 1);
-        render();
-      };
-
-      row.append(label, inputsDiv, ok, del);
-      list.appendChild(row);
-    });
-
-    if (canAdd) {
-      const add = document.createElement("button");
-      add.textContent = "➕ Añadir serie";
-      add.className = "add-series";
-      add.onclick = () => {
-        ex.series.push({
-          done: false,
-          reps: "",
-          weight: "",
-          time: ""
-        });
-        render();
-      };
-
-      list.appendChild(add);
-    }
-  }
-
-  render();
-  container.appendChild(div);
-}
-
-// ✔ COMPLETAR SERIE DURANTE ENTRENAMIENTO
-function completeSeries(exerciseName, seriesIndex, buttonElement) {
-  const seriesItem = buttonElement.parentElement;
-  const repsInput = seriesItem.querySelector('.reps-input');
-  const weightInput = seriesItem.querySelector('.weight-input');
-  const timeInput = seriesItem.querySelector('.time-input');
-
-  // Validar que al menos uno de los campos esté lleno
-  if (!repsInput.value && !weightInput.value && !timeInput.value) {
-    alert("Completa al menos repeticiones, peso o tiempo para esta serie");
-    return;
-  }
-
-  // Marcar como completada
-  seriesItem.classList.add('completed');
-  buttonElement.disabled = true;
-  buttonElement.textContent = "✅ Completada";
-
-  // Deshabilitar inputs
-  repsInput.disabled = true;
-  weightInput.disabled = true;
-  timeInput.disabled = true;
-
-  // Añadir a historial si no está ya
-  if (!history.includes(exerciseName)) {
-    history.push(exerciseName);
-    renderHistory();
-  }
-
-  // Dar XP
-  xp = Math.min(100, xp + 5);
-  xpFill.style.width = xp + "%";
-  xpText.textContent = `Nivel ${level} - XP: ${xp}%`;
-}
-
-// ➕ AÑADIR SERIE DURANTE ENTRENAMIENTO
-function addTrainingSeries(exerciseName, container) {
-  const seriesCount = container.querySelectorAll('.training-series-item').length;
-  const seriesDiv = document.createElement("div");
-  seriesDiv.className = "training-series-item";
-
-  seriesDiv.innerHTML = `
-    <span class="series-label">Serie ${seriesCount + 1}:</span>
-    <input type="number" placeholder="Reps" class="series-input reps-input" min="0">
-    <input type="number" placeholder="Peso (kg)" class="series-input weight-input" min="0" step="0.5">
-    <input type="number" placeholder="Tiempo (seg)" class="series-input time-input" min="0">
-    <button class="complete-series-btn" onclick="completeSeries('${exerciseName}', ${seriesCount}, this)">✔ Completar</button>
-  `;
-
-  container.appendChild(seriesDiv);
-}
-
-
-// 📋 RENDERIZAR RUTINAS
-function renderRoutines() {
-  routinesList.innerHTML = "";
-
-  if (!user) {
-    routinesList.innerHTML = `
-      <div class="auth-required-message">
-        <h3>🔒 Sección Protegida</h3>
-        <p>Debes iniciar sesión para acceder a tus rutinas personalizadas.</p>
-        <button onclick="showSection('profile')">Ir al Perfil</button>
-      </div>
-    `;
-    return;
-  }
-
-  Object.keys(routines).forEach(routineName => {
-    const routine = routines[routineName];
-    const routineDiv = document.createElement("div");
-    routineDiv.className = "routine-card";
-
-    routineDiv.innerHTML = `
-      <h3>${routineName}</h3>
-      <p>${routine.exercises.length} ejercicios</p>
-      <div class="routine-actions">
-        <button onclick="startRoutine('${routineName}')">🚀 Empezar Rutina</button>
-        <button onclick="editRoutine('${routineName}')">✏️ Editar</button>
-        <button onclick="deleteRoutine('${routineName}')">🗑️ Eliminar</button>
-      </div>
-      <div class="routine-exercises">
-        ${routine.exercises.map(ex => `<span class="exercise-tag">${ex}</span>`).join('')}
-      </div>
-    `;
-
-    routinesList.appendChild(routineDiv);
-  });
-}
-
-// 🚀 EMPEZAR RUTINA
-function startRoutine(routineName) {
-  if (!requireAuth()) return;
-
-  currentRoutine = routineName;
-  document.getElementById('currentRoutineName').textContent = routineName;
-  routineTimer.classList.remove("hidden");
-
-  // Limpiar ejercicios anteriores
-  const existingExercises = document.getElementById('currentRoutineExercises');
-  if (existingExercises) {
-    existingExercises.remove();
-  }
-
-  // Crear contenedor para ejercicios de la rutina
-  const exercisesContainer = document.createElement("div");
-  exercisesContainer.id = "currentRoutineExercises";
-
-  routines[routineName].exercises.forEach(exercise => {
-    createExercise(exercisesContainer, exercise, false, 3);
-  });
-
-  // Insertar después del temporizador
-  const timerDiv = document.getElementById('routineTimer');
-  timerDiv.appendChild(exercisesContainer);
-
-  showSection('myroutine');
+  // Iniciar el timer automáticamente
+  startRoutineTimer();
 }
 
 // ⏱️ FUNCIONES DEL TEMPORIZADOR
@@ -580,17 +251,15 @@ function stopRoutineTimer() {
   const session = {
     routineName: currentRoutine,
     date: new Date().toLocaleString(),
-    duration: routineElapsedTime,
-    exercises: getCurrentExercisesData()
+    duration: routineElapsedTime
   };
-
-  if (!routines[currentRoutine].sessions) {
-    routines[currentRoutine].sessions = [];
-  }
-  routines[currentRoutine].sessions.push(session);
 
   // Añadir al historial global
   history.push(session);
+
+  // Guardar en localStorage
+  localStorage.setItem('history', JSON.stringify(history));
+  localStorage.setItem('routines', JSON.stringify(routines));
 
   renderHistory();
 
@@ -613,72 +282,16 @@ function updateTimer() {
     `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
 }
 
-function editRoutineTime() {
-  const hours = Math.floor(routineElapsedTime / 3600000);
-  const minutes = Math.floor((routineElapsedTime % 3600000) / 60000);
-  const seconds = Math.floor((routineElapsedTime % 60000) / 1000);
-
-  document.getElementById('editHours').value = hours;
-  document.getElementById('editMinutes').value = minutes;
-  document.getElementById('editSeconds').value = seconds;
-
-  document.getElementById('editTimeModal').classList.remove('hidden');
-}
-
-function saveEditedTime() {
-  const hours = parseInt(document.getElementById('editHours').value) || 0;
-  const minutes = parseInt(document.getElementById('editMinutes').value) || 0;
-  const seconds = parseInt(document.getElementById('editSeconds').value) || 0;
-
-  routineElapsedTime = (hours * 3600000) + (minutes * 60000) + (seconds * 1000);
-  updateTimer();
-  closeEditModal();
-}
-
-function closeEditModal() {
-  document.getElementById('editTimeModal').classList.add('hidden');
-}
-
-// 📊 OBTENER DATOS DE EJERCICIOS ACTUALES (MODIFICADO PARA ENTRENAMIENTO)
-function getCurrentExercisesData() {
-  const exercises = [];
-  const exerciseElements = document.querySelectorAll('#currentRoutineExercises .training-exercise');
-
-  exerciseElements.forEach(exerciseEl => {
-    const exerciseName = exerciseEl.querySelector('h4').textContent.replace('🏋️ ', '');
-    const series = [];
-
-    // Buscar todas las series completadas en este ejercicio
-    const completedSeries = exerciseEl.querySelectorAll('.training-series-item.completed');
-    completedSeries.forEach(seriesEl => {
-      const repsInput = seriesEl.querySelector('.reps-input');
-      const weightInput = seriesEl.querySelector('.weight-input');
-      const timeInput = seriesEl.querySelector('.time-input');
-
-      series.push({
-        reps: repsInput.value || '0',
-        weight: weightInput.value || '0',
-        time: timeInput.value || '0'
-      });
-    });
-
-    if (series.length > 0) {
-      exercises.push({
-        name: exerciseName,
-        series: series
-      });
-    }
-  });
-
-  return exercises;
-}
-
 // ✏️ EDITAR RUTINA
 function editRoutine(routineName) {
   if (!requireAuth()) return;
 
-  // Implementar edición de rutina
-  alert(`Función de edición para "${routineName}" próximamente disponible`);
+  const newName = prompt("Nuevo nombre para la rutina:", routineName);
+  if (newName && newName !== routineName) {
+    routines[newName] = routines[routineName];
+    delete routines[routineName];
+    renderRoutines();
+  }
 }
 
 // 🗑️ ELIMINAR RUTINA
@@ -691,64 +304,107 @@ function deleteRoutine(routineName) {
   }
 }
 
-// 📋 RENDERIZAR LISTA DE RUTINAS
+// ➕ AÑADIR RUTINA MANUAL
+function addRoutine() {
+  if (!requireAuth()) return;
+
+  document.getElementById('addRoutineForm').classList.remove('hidden');
+}
+
+function saveNewRoutine() {
+  const name = document.getElementById('newRoutineName').value.trim();
+  const exercisesText = document.getElementById('newRoutineExercises').value.trim();
+
+  if (!name || !exercisesText) {
+    alert("Por favor completa todos los campos");
+    return;
+  }
+
+  const exercises = exercisesText.split(',').map(e => e.trim()).filter(e => e);
+  if (exercises.length === 0) {
+    alert("Debes añadir al menos un ejercicio");
+    return;
+  }
+
+  routines[name] = { exercises };
+  localStorage.setItem('routines', JSON.stringify(routines));
+  renderRoutines();
+  cancelAddRoutine();
+}
+
+function cancelAddRoutine() {
+  document.getElementById('addRoutineForm').classList.add('hidden');
+  document.getElementById('newRoutineName').value = '';
+  document.getElementById('newRoutineExercises').value = '';
+}
+
+// 📋 RENDERIZAR RUTINAS
 function renderRoutines() {
   const routinesList = document.getElementById('routinesList');
   routinesList.innerHTML = "";
 
-  if (Object.keys(routines).length === 0) {
-    routinesList.innerHTML = "<p style='text-align: center; color: #64748b; font-style: italic;'>No tienes rutinas guardadas aún. ¡Genera una rutina y añádela!</p>";
+  if (!user) {
+    routinesList.innerHTML = `
+      <div class="auth-required-message">
+        <h3>🔒 Sección Protegida</h3>
+        <p>Debes iniciar sesión para acceder a tus rutinas personalizadas.</p>
+        <button onclick="showSection('profile')">Ir al Perfil</button>
+      </div>
+    `;
     return;
   }
 
+  // Botón para añadir nueva rutina
+  const addBtn = document.createElement("button");
+  addBtn.textContent = "➕ Crear Nueva Rutina";
+  addBtn.className = "add-routine-btn";
+  addBtn.onclick = addRoutine;
+  routinesList.appendChild(addBtn);
+
   Object.keys(routines).forEach(routineName => {
+    const routine = routines[routineName];
     const routineDiv = document.createElement("div");
-    routineDiv.className = "routine-item";
+    routineDiv.className = "routine-card";
 
-    const routineHeader = document.createElement("div");
-    routineHeader.className = "routine-header";
+    // Crear elementos individualmente para mejor control
+    const h3 = document.createElement("h3");
+    h3.textContent = routineName;
+    routineDiv.appendChild(h3);
 
-    const routineTitle = document.createElement("h3");
-    routineTitle.textContent = routineName;
+    const p = document.createElement("p");
+    p.textContent = `${routine.exercises.length} ejercicios`;
+    routineDiv.appendChild(p);
 
-    const exerciseCount = document.createElement("span");
-    exerciseCount.className = "exercise-count";
-    exerciseCount.textContent = `${routines[routineName].exercises.length} ejercicios`;
-
-    const buttonsDiv = document.createElement("div");
-    buttonsDiv.className = "routine-buttons";
+    const actionsDiv = document.createElement("div");
+    actionsDiv.className = "routine-actions";
 
     const startBtn = document.createElement("button");
-    startBtn.textContent = "▶️ Iniciar Rutina";
     startBtn.className = "start-routine-btn";
-    startBtn.onclick = () => startRoutine(routineName);
+    startBtn.textContent = "▶️ Iniciar Rutina";
+    startBtn.addEventListener('click', () => startRoutine(routineName));
+    actionsDiv.appendChild(startBtn);
 
     const editBtn = document.createElement("button");
     editBtn.textContent = "✏️ Editar";
-    editBtn.className = "edit-routine-btn";
-    editBtn.onclick = () => editRoutine(routineName);
+    editBtn.addEventListener('click', () => editRoutine(routineName));
+    actionsDiv.appendChild(editBtn);
 
     const deleteBtn = document.createElement("button");
     deleteBtn.textContent = "🗑️ Eliminar";
-    deleteBtn.className = "delete-routine-btn";
-    deleteBtn.onclick = () => deleteRoutine(routineName);
+    deleteBtn.addEventListener('click', () => deleteRoutine(routineName));
+    actionsDiv.appendChild(deleteBtn);
 
-    buttonsDiv.appendChild(startBtn);
-    buttonsDiv.appendChild(editBtn);
-    buttonsDiv.appendChild(deleteBtn);
+    routineDiv.appendChild(actionsDiv);
 
-    routineHeader.appendChild(routineTitle);
-    routineHeader.appendChild(exerciseCount);
-    routineHeader.appendChild(buttonsDiv);
-
-    const exercisesList = document.createElement("div");
-    exercisesList.className = "routine-exercises";
-    exercisesList.innerHTML = "<strong>Ejercicios:</strong><ul>" +
-      routines[routineName].exercises.map(ex => `<li>${ex}</li>`).join('') +
-      "</ul>";
-
-    routineDiv.appendChild(routineHeader);
-    routineDiv.appendChild(exercisesList);
+    const exercisesDiv = document.createElement("div");
+    exercisesDiv.className = "routine-exercises";
+    routine.exercises.forEach(ex => {
+      const tag = document.createElement("span");
+      tag.className = "exercise-tag";
+      tag.textContent = ex;
+      exercisesDiv.appendChild(tag);
+    });
+    routineDiv.appendChild(exercisesDiv);
 
     routinesList.appendChild(routineDiv);
   });
@@ -756,6 +412,7 @@ function renderRoutines() {
 
 // 📜 RENDERIZAR HISTORIAL
 function renderHistory() {
+  const historyList = document.getElementById('historyList');
   historyList.innerHTML = "";
 
   if (!user) {
@@ -774,52 +431,19 @@ function renderHistory() {
     return;
   }
 
-  history.forEach((session, index) => {
+  history.forEach(session => {
     const li = document.createElement("li");
     li.className = "history-item";
 
     const duration = formatDuration(session.duration);
     li.innerHTML = `
-      <div class="history-header" onclick="toggleHistoryDetails(${index})">
-        <strong>${session.routineName}</strong>
-        <span class="history-date">${session.date}</span>
-        <span class="history-duration">⏱️ ${duration}</span>
-        <span class="history-toggle">▼</span>
-      </div>
-      <div class="history-details" id="history-details-${index}" style="display: none;">
-        <div class="exercise-summary">
-          ${session.exercises && session.exercises.length > 0 ?
-            session.exercises.map(ex => `
-              <div class="exercise-summary-item">
-                <strong>${ex.name}</strong>
-                ${ex.series.map((s, i) => `
-                  <div class="series-summary">
-                    Serie ${i+1}: ${s.reps || 0} reps, ${s.weight || 0}kg, ${s.time || 0}s
-                  </div>
-                `).join('')}
-              </div>
-            `).join('') :
-            '<p>No hay datos de ejercicios registrados</p>'
-          }
-        </div>
-      </div>
+      <strong>${session.routineName}</strong>
+      <span class="history-date">${session.date}</span>
+      <span class="history-duration">⏱️ ${duration}</span>
     `;
 
     historyList.appendChild(li);
   });
-}
-
-function toggleHistoryDetails(index) {
-  const details = document.getElementById(`history-details-${index}`);
-  const toggle = details.previousElementSibling.querySelector('.history-toggle');
-
-  if (details.style.display === 'none') {
-    details.style.display = 'block';
-    toggle.textContent = '▲';
-  } else {
-    details.style.display = 'none';
-    toggle.textContent = '▼';
-  }
 }
 
 function formatDuration(ms) {
@@ -828,4 +452,14 @@ function formatDuration(ms) {
   const seconds = Math.floor((ms % 60000) / 1000);
 
   return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+}
+
+// 💾 AÑADIR RUTINA A MIS RUTINAS
+function addWorkoutToMyRoutine(exercises, character) {
+  if (!requireAuth()) return;
+
+  const routineName = `Rutina de ${character}`;
+  routines[routineName] = { exercises };
+  renderRoutines();
+  alert("Rutina añadida a Mis Rutinas");
 }

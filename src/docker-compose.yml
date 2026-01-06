@@ -20,7 +20,7 @@ services:
   gateway:
     build: ./gateway-node
     ports:
-      - "3000:3000"
+      - "3002:3002"
     depends_on:
       - users
       - workouts
