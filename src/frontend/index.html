@@ -23,6 +23,9 @@
 <section id="home" class="section active">
   <h2>Convierte tu entrenamiento en un RPG</h2>
   <p>Sube de nivel, completa rutinas y registra tu progreso.</p>
+  <div class="home-image">
+    <img src="Imagen.jpg" alt="GameFit - Entrenamiento RPG">
+  </div>
 </section>
 
 <section id="workout" class="section">
@@ -74,6 +77,12 @@
 
   <div id="profileInfo" class="hidden">
     <p><strong>Usuario:</strong> <span id="profileUser"></span></p>
+    <p><strong>XP:</strong> <span id="profileXP"></span></p>
+    <div class="xp-bar">
+      <div id="xpFill"></div>
+    </div>
+    <p id="xpLevel">Nivel 1</p>
+    <button onclick="logout()" class="logout-btn">Cerrar Sesión</button>
   </div>
 </section>
 

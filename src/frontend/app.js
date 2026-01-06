@@ -16,6 +16,7 @@ try {
   history = JSON.parse(localStorage.getItem('history')) || [];
   myRoutine = JSON.parse(localStorage.getItem('myRoutine')) || [];
   routines = JSON.parse(localStorage.getItem('routines')) || routines;
+  xp = parseInt(localStorage.getItem('xp')) || 0;
 } catch (e) {
   console.error('Error loading from localStorage:', e);
   // Reset to defaults
@@ -26,6 +27,7 @@ try {
     'Rutina de Goku': { exercises: ['Push-ups', 'Squats', 'Burpees'] },
     'Pierna': { exercises: ['Sentadillas', 'Peso muerto', 'Elevación de talones'] }
   };
+  xp = 0;
 }
 
 let currentRoutine = null;
@@ -81,6 +83,7 @@ function resetRoutineTimer() {
 document.addEventListener('DOMContentLoaded', function() {
   renderRoutines();
   renderHistory();
+  updateProfile();
 });
 
 // 🔐 VERIFICACIÓN DE AUTENTICACIÓN
@@ -91,6 +94,22 @@ function requireAuth() {
     return false;
   }
   return true;
+}
+
+// 📊 ACTUALIZAR PERFIL
+function updateProfile() {
+  if (user) {
+    document.getElementById('profileUser').textContent = user;
+    document.getElementById('profileXP').textContent = xp;
+
+    // Calcular nivel y progreso
+    const level = Math.floor(xp / 100) + 1;
+    const xpInLevel = xp % 100;
+    const progressPercent = (xpInLevel / 100) * 100;
+
+    document.getElementById('xpLevel').textContent = `Nivel ${level}`;
+    document.getElementById('xpFill').style.width = `${progressPercent}%`;
+  }
 }
 
 // 🔐 AUTH
@@ -152,7 +171,7 @@ async function login() {
       localStorage.setItem('myRoutine', JSON.stringify(myRoutine));
       localStorage.setItem('routines', JSON.stringify(routines));
 
-      document.getElementById('profileUser').textContent = user;
+      updateProfile();
       document.getElementById('authBox').classList.add("hidden");
       document.getElementById('profileInfo').classList.remove("hidden");
 
@@ -168,6 +187,15 @@ async function login() {
     console.error("Error en login:", error);
     alert("Error de conexión. Verifica que el servidor esté corriendo.");
   }
+}
+
+// 🚪 CERRAR SESIÓN
+function logout() {
+  user = null;
+  localStorage.removeItem('user');
+  document.getElementById('profileInfo').classList.add("hidden");
+  document.getElementById('authBox').classList.remove("hidden");
+  showSection('profile');
 }
 
 // 🏋️ WORKOUT
@@ -261,12 +289,15 @@ function stopRoutineTimer() {
   localStorage.setItem('history', JSON.stringify(history));
   localStorage.setItem('routines', JSON.stringify(routines));
 
-  renderHistory();
+  // Añadir XP por completar rutina
+  xp += 10;
+  localStorage.setItem('xp', xp);
+  updateProfile();
 
   // Reset completo
   resetRoutineTimer();
 
-  alert("¡Rutina completada! Guardada en el historial.");
+  alert("¡Rutina completada! +10 XP. Guardada en el historial.");
 }
 
 function updateTimer() {
@@ -414,17 +445,6 @@ function renderRoutines() {
 function renderHistory() {
   const historyList = document.getElementById('historyList');
   historyList.innerHTML = "";
-
-  if (!user) {
-    historyList.innerHTML = `
-      <div class="auth-required-message">
-        <h3>🔒 Sección Protegida</h3>
-        <p>Debes iniciar sesión para ver tu historial de rutinas.</p>
-        <button onclick="showSection('profile')">Ir al Perfil</button>
-      </div>
-    `;
-    return;
-  }
 
   if (history.length === 0) {
     historyList.innerHTML = "<li style='text-align: center; color: #64748b; font-style: italic;'>No has completado rutinas aún</li>";

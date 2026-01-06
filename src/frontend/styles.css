@@ -106,6 +106,52 @@ body {
   margin: 1rem 0;
 }
 
+#profileInfo p strong {
+  color: #22c55e;
+}
+
+.xp-bar {
+  background: #1e293b;
+  height: 20px;
+  border-radius: 10px;
+  overflow: hidden;
+  margin: 1rem 0;
+  border: 1px solid #334155;
+}
+
+#xpFill {
+  height: 100%;
+  background: linear-gradient(90deg, #22c55e, #16a34a);
+  width: 0%;
+  transition: width 0.5s ease;
+  border-radius: 10px;
+}
+
+#xpLevel {
+  text-align: center;
+  font-weight: bold;
+  color: #f1f5f9;
+  margin: 0.5rem 0;
+}
+
+.logout-btn {
+  margin-top: 2rem;
+  padding: 0.75rem 2rem;
+  background: linear-gradient(45deg, #ef4444, #dc2626);
+  border: none;
+  border-radius: 8px;
+  color: white;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+}
+
+.logout-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(239, 68, 68, 0.4);
+}
+
 #authBox {
   background: rgba(30, 41, 59, 0.8);
   padding: 2rem;
@@ -525,4 +571,19 @@ body {
 .start-routine-btn:hover {
   transform: translateY(-2px) !important;
   box-shadow: 0 6px 20px rgba(34, 197, 94, 0.4) !important;
+}
+
+.home-image {
+  max-width: 100%;
+  height: auto;
+  border-radius: 12px;
+  margin-top: 2rem;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+  overflow: hidden;
+}
+
+.home-image img {
+  width: 100%;
+  height: auto;
+  display: block;
 }
