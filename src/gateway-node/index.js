@@ -74,8 +74,6 @@ app.get("/api/workouts/:character", async (req, res) => {
   res.json(r.data);
 });
 
-app.listen(3000, () => console.log("Gateway on 3000"));
-
 /**
  * @swagger
  * /api/auth/register:
