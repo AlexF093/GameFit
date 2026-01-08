@@ -80,10 +80,15 @@ function resetRoutineTimer() {
 }
 
 // Inicializar al cargar
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', async function() {
   renderRoutines();
   renderHistory();
   updateProfile();
+
+  if (user) {
+    await loadRoutinesFromServer();
+    await loadHistoryFromServer();
+  }
 });
 
 // 🔐 VERIFICACIÓN DE AUTENTICACIÓN
@@ -148,13 +153,10 @@ async function login() {
   const u = document.getElementById('loginUser').value;
   const p = document.getElementById('loginPass').value;
 
-  if (!u || !p) {
-    alert("Por favor completa todos los campos");
-    return;
-  }
+  if (!u || !p) return alert("Por favor completa todos los campos");
 
   try {
-    const res = await fetch("http://localhost:3002/api/auth/login", {
+    const res = await fetch("http://localhost:3001/api/auth/login", {
       method: "POST",
       headers: {"Content-Type": "application/json"},
       body: JSON.stringify({ username: u, password: p })
@@ -164,22 +166,20 @@ async function login() {
 
     if (res.ok) {
       user = data.username;
+      xp = data.xp || 0; 
 
-      // Guardar en localStorage
+      // Guardar en localStorage opcionalmente
       localStorage.setItem('user', JSON.stringify(user));
-      localStorage.setItem('history', JSON.stringify(history));
-      localStorage.setItem('myRoutine', JSON.stringify(myRoutine));
-      localStorage.setItem('routines', JSON.stringify(routines));
+      localStorage.setItem('xp', xp);
 
       updateProfile();
       document.getElementById('authBox').classList.add("hidden");
       document.getElementById('profileInfo').classList.remove("hidden");
-
-      // Cambiar a la sección de perfil
       showSection('profile');
 
-      // Actualizar vistas que requieren autenticación
-      renderRoutines();
+      await loadRoutinesFromServer();
+      await loadHistoryFromServer();
+
     } else {
       alert("Error: " + (data.error || "Error desconocido"));
     }
@@ -188,6 +188,7 @@ async function login() {
     alert("Error de conexión. Verifica que el servidor esté corriendo.");
   }
 }
+
 
 // 🚪 CERRAR SESIÓN
 function logout() {
@@ -240,6 +241,11 @@ async function loadWorkout() {
 function startRoutine(routineName) {
   if (!requireAuth()) return;
 
+  if (!routineName) {           
+    alert("Error: no se ha seleccionado ninguna rutina.");
+    return;
+  }
+
   // Resetear el timer antes de iniciar
   resetRoutineTimer();
 
@@ -274,14 +280,13 @@ function pauseRoutineTimer() {
   document.getElementById('startTimer').classList.remove('hidden');
 }
 
-function stopRoutineTimer() {
+async function stopRoutineTimer() {
   // Guardar sesión en historial
   const session = {
     routineName: currentRoutine,
     date: new Date().toLocaleString(),
     duration: routineElapsedTime
   };
-
   // Añadir al historial global
   history.push(session);
 
@@ -294,10 +299,32 @@ function stopRoutineTimer() {
   localStorage.setItem('xp', xp);
   updateProfile();
 
+  await fetch("http://localhost:3002/api/history", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      username: user,
+      routineName: currentRoutine || "Desconocida",
+      date: new Date().toLocaleString(),
+      duration: routineElapsedTime
+    })
+  });
+
+  // 💾 Guardar XP en backend
+  await fetch("http://localhost:3002/api/auth/update-xp", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username: user, xp })
+  });
+
   renderHistory();
 
   // Reset completo
   resetRoutineTimer();
+
+  // 🔄 RECARGAR HISTORIAL DESDE SERVIDOR
+  await loadHistoryFromServer();
+
 
   alert("¡Rutina completada! +10 XP. Guardada en el historial.");
 }
@@ -316,26 +343,49 @@ function updateTimer() {
 }
 
 // ✏️ EDITAR RUTINA
-function editRoutine(routineName) {
+async function editRoutine(routineName) {
   if (!requireAuth()) return;
 
   const newName = prompt("Nuevo nombre para la rutina:", routineName);
-  if (newName && newName !== routineName) {
-    routines[newName] = routines[routineName];
-    delete routines[routineName];
-    renderRoutines();
-  }
+  if (!newName || newName === routineName) return;
+
+  const exercises = routines[routineName].exercises;
+
+  await fetch("http://localhost:3002/api/routines", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      username: user,
+      oldName: routineName,
+      newName,
+      exercises
+    })
+  });
+
+  await loadRoutinesFromServer();
+  alert("Rutina actualizada");
 }
+
 
 // 🗑️ ELIMINAR RUTINA
-function deleteRoutine(routineName) {
+async function deleteRoutine(routineName) {
   if (!requireAuth()) return;
 
-  if (confirm(`¿Estás seguro de eliminar la rutina "${routineName}"?`)) {
-    delete routines[routineName];
-    renderRoutines();
-  }
+  if (!confirm(`¿Eliminar la rutina "${routineName}"?`)) return;
+
+  await fetch("http://localhost:3002/api/routines", {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      username: user,
+      name: routineName
+    })
+  });
+
+  await loadRoutinesFromServer();
+  alert("Rutina eliminada");
 }
+
 
 // ➕ AÑADIR RUTINA MANUAL
 function addRoutine() {
@@ -344,7 +394,9 @@ function addRoutine() {
   document.getElementById('addRoutineForm').classList.remove('hidden');
 }
 
-function saveNewRoutine() {
+async function saveNewRoutine() {
+  if (!requireAuth()) return;
+
   const name = document.getElementById('newRoutineName').value.trim();
   const exercisesText = document.getElementById('newRoutineExercises').value.trim();
 
@@ -353,17 +405,40 @@ function saveNewRoutine() {
     return;
   }
 
-  const exercises = exercisesText.split(',').map(e => e.trim()).filter(e => e);
+  const exercises = exercisesText
+    .split(',')
+    .map(e => e.trim())
+    .filter(e => e);
+
   if (exercises.length === 0) {
     alert("Debes añadir al menos un ejercicio");
     return;
   }
 
-  routines[name] = { exercises };
-  localStorage.setItem('routines', JSON.stringify(routines));
-  renderRoutines();
-  cancelAddRoutine();
+  try {
+    // 🔥 GUARDAR EN BACKEND
+    await fetch("http://localhost:3002/api/routines", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        username: user,
+        name,
+        exercises
+      })
+    });
+
+    // 🔄 RECARGAR DESDE SERVIDOR
+    await loadRoutinesFromServer();
+
+    cancelAddRoutine();
+    alert("Rutina creada y guardada correctamente");
+
+  } catch (error) {
+    console.error("Error guardando rutina:", error);
+    alert("Error al guardar la rutina");
+  }
 }
+
 
 function cancelAddRoutine() {
   document.getElementById('addRoutineForm').classList.add('hidden');
@@ -477,11 +552,46 @@ function formatDuration(ms) {
 }
 
 // 💾 AÑADIR RUTINA A MIS RUTINAS
-function addWorkoutToMyRoutine(exercises, character) {
+async function addWorkoutToMyRoutine(exercises, character) {
   if (!requireAuth()) return;
 
-  const routineName = `Rutina de ${character}`;
-  routines[routineName] = { exercises };
+  await fetch("http://localhost:3002/api/routines", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      username: user,
+      name: `Rutina de ${character}`,
+      exercises
+    })
+  });
+
+  await loadRoutinesFromServer();
+  alert("Rutina guardada en el servidor");
+}
+
+
+
+// 🌐 CARGAR RUTINAS DESDE BACKEND
+async function loadRoutinesFromServer() {
+  if (!user) return;
+
+  const res = await fetch(`http://localhost:3002/api/routines/${user}`);
+  const data = await res.json();
+
+  routines = {};
+  data.forEach(r => {
+    routines[r.name] = { exercises: r.exercises };
+  });
+
   renderRoutines();
-  alert("Rutina añadida a Mis Rutinas");
+}
+
+// 📜 CARGAR HISTORIAL DESDE BACKEND
+async function loadHistoryFromServer() {
+  if (!user) return;
+
+  const res = await fetch(`http://localhost:3002/api/history/${user}`);
+  history = await res.json();
+
+  renderHistory();
 }

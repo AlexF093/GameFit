@@ -166,6 +166,24 @@ app.post("/api/auth/login", async (req, res) => {
   }
 });
 
+
+app.post("/api/auth/update-xp", async (req, res) => {
+  const { username, xp } = req.body;
+  if (!username || xp == null) return res.status(400).json({ error: "Faltan datos" });
+
+  try {
+    const user = await User.findOne({ username });
+    if (!user) return res.status(404).json({ error: "Usuario no encontrado" });
+
+    user.xp = xp;
+    await user.save();
+    res.json({ message: "XP actualizada", xp: user.xp });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Error interno" });
+  }
+});
+
 // 🚀 START
 app.listen(3001, () => {
   console.log("Users service running on port 3001");

@@ -60,9 +60,9 @@ docker-compose up --build
    ```
 
 ## Acceso a la Aplicación
-- **Frontend**: http://localhost:8080
+/*- **Frontend**: http://localhost:8080
 - **API Gateway**: http://localhost:3002/api/
-- **Users API**: http://localhost:3001
+- **Users API**: http://localhost:3001*/
 - **Users API Docs (Swagger)**: http://localhost:3001/api-docs
 - **Gateway API Docs (Swagger)**: http://localhost:3002/api-docs
 - **Workouts API (Swagger)**: http://localhost:8000/docs
@@ -82,7 +82,6 @@ El servicio de workouts consume la API de API Ninjas para obtener ejercicios rea
 ```
 src/
 ├── docker-compose.yml
-├── README.md
 ├── frontend/
 │   ├── index.html
 │   ├── app.js
