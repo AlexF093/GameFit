@@ -1,5 +1,8 @@
 # GameFit - Prototipo Final
 
+## Link al github
+https://github.com/AlexF093/GameFit.git
+
 ## Descripción
 GameFit es una aplicación web que combina el entrenamiento físico con el mundo de los videojuegos y el anime. Permite a los usuarios entrenar como su personaje favorito mediante rutinas personalizadas y gamificadas.
 
