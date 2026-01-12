@@ -64,8 +64,6 @@ docker-compose up --build
 
 ## Acceso a la Aplicación
 /*- **Frontend**: http://localhost:8080
-- **API Gateway**: http://localhost:3002/api/
-- **Users API**: http://localhost:3001*/
 - **Users API Docs (Swagger)**: http://localhost:3001/api-docs
 - **Gateway API Docs (Swagger)**: http://localhost:3002/api-docs
 - **Workouts API (Swagger)**: http://localhost:8000/docs
